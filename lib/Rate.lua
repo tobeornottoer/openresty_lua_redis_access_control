@@ -12,7 +12,7 @@ function Rate:control(redis,ip)
 
 	local rule = self:getRule(redis,ip)
 	if rule == nil or rule.expire == 0 or rule.rate == 0 then
-		--return true
+		return true
 	end
 
 	local numb = redis:get(Redis_Key.RATE_PREX..ip)
