@@ -3,8 +3,171 @@
 <head>
     <meta charset="UTF-8">
     <title>访问控制配置</title>
+    <link rel="stylesheet" href="./html/layui.css">
+    <script src="./html/layui.all.js"></script>
+    <script src="http://libs.baidu.com/jquery/2.0.0/jquery.min.js"></script>
+    <style>
+        html,body{width:100%;height:100%;}
+        .layui-icon{cursor: pointer;}
+        ::-webkit-scrollbar {width: 0px;height: 0px;}
+    </style>
 </head>
 <body>
-    <div style="width:300px;height:300px;background: #f00;"></div>
+<div id="box" style="display: none;">
+    <form class="layui-form" action="">
+
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">访问控制</label>
+            <div class="layui-input-block">
+                <input type="checkbox" id="sitc" name="switch" lay-skin="switch" lay-filter="switch" lay-text="ON|OFF" >
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">IP黑名单</label>
+            <div class="layui-input-block" style="max-height: 265px !important;overflow: scroll;">
+                <table class="layui-table" style="width: 90%;">
+                    <colgroup>
+                        <col width="80">
+                        <col width="80">
+                        <col>
+                    </colgroup>
+                    <thead>
+                    <tr>
+                        <th>IP</th>
+                        <th>移除</th>
+                    </tr>
+                    </thead>
+                    <tbody id="blacklist">
+                        <tr>
+                            <td>127.0.0.1</td>
+                            <td><i class="layui-icon layui-icon-reduce-circle del-ip" style="font-size: 30px; color: #5FB878;"></i> </td>
+                        </tr>
+                        <tr>
+                            <td>127.0.0.2</td>
+                            <td><i class="layui-icon layui-icon-reduce-circle del-ip" style="font-size: 30px; color: #5FB878;"></i> </td>
+                        </tr>
+
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">访问速率</label>
+            <div class="layui-input-block">
+                <table class="layui-table" style="width: 90%;">
+                    <thead>
+                        <tr>
+                            <th>IP</th>
+                            <th>速率（次数/秒数）</th>
+                            <th>上限拉黑</th>
+                            <th><i class="layui-icon layui-icon-add-circle " style="font-size: 30px; color: #5FB878;"></i></th>
+                        </tr>
+                    </thead>
+                    <tbody id="rate_conf">
+                        <tr>
+                            <td><input type="text" name="ip" autocomplete="off" class="layui-input"></td>
+                            <td><input type="text" name="rate" autocomplete="off" class="layui-input"></td>
+                            <td><input type="text" name="max_nums" autocomplete="off" class="layui-input"></td>
+                            <td></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+
+        <div class="layui-form-item">
+            <div class="layui-input-block">
+                <button class="layui-btn" lay-submit lay-filter="formDemo">立即提交</button>
+            </div>
+        </div>
+    </form>
+</div>
 </body>
 </html>
+<script>
+
+    var data;
+
+    $(function(){
+        getData();
+        renderSwitch(data.sitc);
+        renderBlacklist(data.blacklistip);
+        renderRateConf(data.rateconf);
+
+        layui.use('form', function(){
+            form = layui.form;
+
+            form.on('switch(switch)', function(data){
+                console.log(data.elem); //得到checkbox原始DOM对象
+                console.log(data.elem.checked); //开关是否开启，true或者false
+                console.log(data.value); //开关value值，也可以通过data.elem.value得到
+                console.log(data.othis); //得到美化后的DOM对象
+            });
+
+            //
+            // //监听提交
+            // form.on('submit(formDemo)', function(data){
+            //     layer.msg(JSON.stringify(data.field));
+            //     return false;
+            // });
+        });
+
+        layui.use('layer', function(){
+            var layer = layui.layer;
+            var html = document.getElementById("box").innerHTML;
+            layer.open({
+                title:'访问控制配置',
+                type: 1,
+                area: ['80%', '60%'], //宽高
+                content: html,
+                closeBtn: 0,
+                shade: 0.6,
+            });
+            form.render();
+        });
+    });
+
+    function renderSwitch(sitc){
+        if(sitc == 1){
+            $("#sitc").attr("checked","true");
+        }else{
+            $("#sitc").removeAttr("checked");
+        }
+    }
+
+    function renderBlacklist(list){
+        var html = "";
+        for(var i in list){
+            html += '<tr>\n' +
+                '                            <td>'+list[i]+'</td>\n' +
+                '                            <td><i class="layui-icon layui-icon-reduce-circle del-ip" style="font-size: 30px; color: #5FB878;"></i> </td>\n' +
+                '                        </tr>'
+        }
+        $("#blacklist").html(html);
+    }
+
+    function renderRateConf(list){
+        html = "";
+        for(var i in list){
+            html += '<tr>\n' +
+                '                            <td><input type="text" name="ip" value="'+i.replace('ngx_lua_rate_rule','')+'" autocomplete="off" class="layui-input"></td>\n' +
+                '                            <td><input type="text" name="rate" value="'+list[i].rate +"/"+list[i].expire+'" autocomplete="off" class="layui-input"></td>\n' +
+                '                            <td><input type="text" name="max_nums" value="'+list[i].max+'" autocomplete="off" class="layui-input"></td>\n' +
+                '                            <td></td>\n' +
+                '                        </tr>'
+        }
+        $("#rate_conf").html(html);
+    }
+
+    function getData(){
+        $.ajaxSetup({async:false});
+        $.get("/lua_set?conf",function(res){
+            data = res
+        },"json")
+    }
+
+</script>
